@@ -3,6 +3,11 @@ import { z } from "zod";
 
 config();
 
+const optionalUrl = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().url().optional()
+);
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -12,8 +17,8 @@ const envSchema = z.object({
   PII_ENCRYPTION_KEY: z.string().min(32),
   DOCUMENT_HASH_SECRET: z.string().min(32),
   ALLOWED_ORIGINS: z.string().default("http://localhost:4200"),
-  LOG_WEBHOOK_URL: z.string().url().optional(),
-  REDIS_URL: z.string().url().optional(),
+  LOG_WEBHOOK_URL: optionalUrl,
+  REDIS_URL: optionalUrl,
   APP_VERSION: z.string().default("1.0.0"),
   ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(15),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),

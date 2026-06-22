@@ -8,7 +8,8 @@
     "start": "node dist/server.js",
     "migrate": "prisma migrate deploy",
     "seed": "tsx src/seed.ts",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "test:auth": "tsx tests/scripts/auth/run-auth-smoke.ts"
   },
   "keywords": [
     "express",
