@@ -3,6 +3,11 @@ import { z } from "zod";
 
 config();
 
+const defaultAllowedOrigins = [
+  "http://localhost:4200",
+  "https://digiscratch.github.io"
+];
+
 const optionalUrl = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   z.string().url().optional()
@@ -16,7 +21,7 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32),
   PII_ENCRYPTION_KEY: z.string().min(32),
   DOCUMENT_HASH_SECRET: z.string().min(32),
-  ALLOWED_ORIGINS: z.string().default("http://localhost:4200"),
+  ALLOWED_ORIGINS: z.string().default(defaultAllowedOrigins.join(",")),
   LOG_WEBHOOK_URL: optionalUrl,
   REDIS_URL: optionalUrl,
   APP_VERSION: z.string().default("1.0.0"),
@@ -43,5 +48,11 @@ if (!parsed.success) {
 export const env = {
   ...parsed.data,
   isProduction: parsed.data.NODE_ENV === "production",
-  allowedOrigins: parsed.data.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+  allowedOrigins: Array.from(
+    new Set(
+      [...defaultAllowedOrigins, ...parsed.data.ALLOWED_ORIGINS.split(",")]
+        .map((origin) => origin.trim())
+        .filter(Boolean)
+    )
+  )
 };
