@@ -27,3 +27,13 @@ Variables opcionales:
 - `AUTH_TEST_EMAIL`
 - `AUTH_TEST_NAME`
 - `AUTH_TEST_PASSWORD`
+
+## Health
+
+Valida que `GET /health` responda `200` y devuelva `status=ok`.
+
+Comando:
+
+```bash
+npm run test:health
+```

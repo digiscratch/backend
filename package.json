@@ -9,7 +9,8 @@
     "migrate": "prisma migrate deploy",
     "seed": "tsx src/seed.ts",
     "prisma:generate": "prisma generate",
-    "test:auth": "tsx tests/scripts/auth/run-auth-smoke.ts"
+    "test:auth": "tsx tests/scripts/auth/run-auth-smoke.ts",
+    "test:health": "tsx tests/scripts/health/run-health-check.ts"
   },
   "keywords": [
     "express",

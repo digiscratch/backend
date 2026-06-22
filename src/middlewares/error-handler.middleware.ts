@@ -19,6 +19,21 @@ export function errorHandler(
   response: Response,
   _next: NextFunction
 ): void {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "type" in error &&
+    error.type === "entity.parse.failed"
+  ) {
+    response.status(400).json({
+      error: {
+        code: "INVALID_JSON",
+        message: "Malformed JSON request body."
+      }
+    });
+    return;
+  }
+
   if (error instanceof ZodError) {
     response.status(400).json({
       error: {

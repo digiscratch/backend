@@ -1,5 +1,6 @@
 import Redis from "ioredis";
 import { env } from "../config/env";
+import { logger } from "../lib/logger";
 
 interface RateLimitResult {
   allowed: boolean;
@@ -14,11 +15,21 @@ export class RateLimitService {
   constructor() {
     if (env.REDIS_URL) {
       this.redis = new Redis(env.REDIS_URL, {
+        connectTimeout: 2000,
+        enableOfflineQueue: false,
+        family: 0,
         lazyConnect: true,
-        maxRetriesPerRequest: 1
+        maxRetriesPerRequest: 1,
+        retryStrategy: () => null
       });
 
-      this.redis.connect().catch(() => undefined);
+      this.redis.on("error", (error) => {
+        logger.warn({ error }, "Redis unavailable, using in-memory rate limiting");
+      });
+
+      this.redis.connect().catch(() => {
+        this.redis?.disconnect();
+      });
     }
   }
 
