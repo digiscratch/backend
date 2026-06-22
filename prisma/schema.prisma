@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InternalUserRole {
+  SUPER_ADMIN
+  ADMIN
+  STAND_OPERATOR
+  AUDITOR
+}
+
+enum ParticipationResult {
+  WINNER
+  NO_PRIZE
+}
+
+model InternalUser {
+  id              String            @id @default(uuid()) @db.Uuid
+  email           String            @unique @db.VarChar(255)
+  name            String            @db.VarChar(255)
+  role            InternalUserRole
+  passwordHash    String            @map("password_hash")
+  mfaEnabled      Boolean           @default(false) @map("mfa_enabled")
+  isActive        Boolean           @default(true) @map("is_active")
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  mfaSettings     MfaSetting?
+  refreshTokens   RefreshToken[]
+  redeemedEntries Participation[]   @relation("RedeemedByUser")
+  auditLogs       AuditLog[]
+
+  @@map("internal_users")
+}
+
+model MfaSetting {
+  id          String       @id @default(uuid()) @db.Uuid
+  userId      String       @unique @map("user_id") @db.Uuid
+  secretCiphertext String   @map("secret_ciphertext") @db.Text
+  secretIv    String       @map("secret_iv") @db.Text
+  secretAuthTag String     @map("secret_auth_tag") @db.Text
+  otpauthUrl  String       @map("otpauth_url") @db.Text
+  enrolledAt  DateTime?    @map("enrolled_at") @db.Timestamptz(6)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user        InternalUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mfa_settings")
+}
+
+model RefreshToken {
+  id           String       @id @default(uuid()) @db.Uuid
+  userId       String       @map("user_id") @db.Uuid
+  tokenHash    String       @unique @map("token_hash") @db.VarChar(64)
+  expiresAt    DateTime     @map("expires_at") @db.Timestamptz(6)
+  revokedAt    DateTime?    @map("revoked_at") @db.Timestamptz(6)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdByIp  String?      @map("created_by_ip") @db.VarChar(128)
+  user         InternalUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Event {
+  id             String          @id @default(uuid()) @db.Uuid
+  code           String          @unique @db.VarChar(100)
+  name           String          @db.VarChar(255)
+  description    String?         @db.Text
+  startsAt       DateTime        @map("starts_at") @db.Timestamptz(6)
+  endsAt         DateTime        @map("ends_at") @db.Timestamptz(6)
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  prizes         Prize[]
+  participations Participation[]
+
+  @@map("events")
+}
+
+model Prize {
+  id             String          @id @default(uuid()) @db.Uuid
+  eventId        String          @map("event_id") @db.Uuid
+  name           String          @db.VarChar(255)
+  description    String?         @db.Text
+  stockTotal     Int             @map("stock_total")
+  stockAvailable Int             @map("stock_available")
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  event          Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  participations Participation[]
+
+  @@index([eventId])
+  @@map("prizes")
+}
+
+model Participant {
+  id                 String          @id @default(uuid()) @db.Uuid
+  documentHash       String          @unique @map("document_hash") @db.VarChar(64)
+  documentCiphertext String          @map("document_ciphertext") @db.Text
+  documentIv         String          @map("document_iv") @db.Text
+  documentAuthTag    String          @map("document_auth_tag") @db.Text
+  nameCiphertext     String          @map("name_ciphertext") @db.Text
+  nameIv             String          @map("name_iv") @db.Text
+  nameAuthTag        String          @map("name_auth_tag") @db.Text
+  phoneCiphertext    String          @map("phone_ciphertext") @db.Text
+  phoneIv            String          @map("phone_iv") @db.Text
+  phoneAuthTag       String          @map("phone_auth_tag") @db.Text
+  emailCiphertext    String          @map("email_ciphertext") @db.Text
+  emailIv            String          @map("email_iv") @db.Text
+  emailAuthTag       String          @map("email_auth_tag") @db.Text
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  participations     Participation[]
+
+  @@map("participants")
+}
+
+model Participation {
+  id               String              @id @default(uuid()) @db.Uuid
+  eventId          String              @map("event_id") @db.Uuid
+  participantId    String              @map("participant_id") @db.Uuid
+  documentHash     String              @map("document_hash") @db.VarChar(64)
+  prizeId          String?             @map("prize_id") @db.Uuid
+  result           ParticipationResult
+  resultMessage    String?             @map("result_message") @db.Text
+  redeemed         Boolean             @default(false)
+  redeemedAt       DateTime?           @map("redeemed_at") @db.Timestamptz(6)
+  redeemedByUserId String?             @map("redeemed_by_user_id") @db.Uuid
+  createdAt        DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  event            Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  participant      Participant         @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  prize            Prize?              @relation(fields: [prizeId], references: [id], onDelete: SetNull)
+  redeemedByUser   InternalUser?       @relation("RedeemedByUser", fields: [redeemedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, documentHash])
+  @@index([participantId])
+  @@index([eventId])
+  @@map("participations")
+}
+
+model AuditLog {
+  id            String            @id @default(uuid()) @db.Uuid
+  timestamp     DateTime          @default(now()) @db.Timestamptz(6)
+  actorUserId   String?           @map("actor_user_id") @db.Uuid
+  actorEmail    String?           @map("actor_email") @db.VarChar(255)
+  actorRole     InternalUserRole? @map("actor_role")
+  action        String            @db.VarChar(100)
+  entityType    String            @map("entity_type") @db.VarChar(100)
+  entityId      String            @map("entity_id") @db.VarChar(100)
+  ipAddress     String?           @map("ip_address") @db.VarChar(128)
+  userAgent     String?           @map("user_agent") @db.Text
+  requestId     String?           @map("request_id") @db.VarChar(100)
+  previousValue Json?             @map("previous_value")
+  newValue      Json?             @map("new_value")
+  metadata      Json?
+  hashIntegrity String            @map("hash_integrity") @db.VarChar(64)
+  actorUser     InternalUser?     @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([action])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
