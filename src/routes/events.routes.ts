@@ -7,6 +7,22 @@ import { eventPatchSchema, eventSchema } from "../schemas/event.schemas";
 import { auditService } from "../services/audit.service";
 import { participantService } from "../services/participant.service";
 
+function readParticipantForAdmin(participation: {
+  id: string;
+  participant: Parameters<typeof participantService.decryptParticipant>[0];
+}) {
+  try {
+    return participantService.decryptParticipant(participation.participant);
+  } catch {
+    return {
+      document: "No disponible",
+      name: "Participante no disponible",
+      phone: "No disponible",
+      email: "No disponible"
+    };
+  }
+}
+
 export const eventsRouter = Router();
 
 eventsRouter.get("/", async (_request, response, next) => {
@@ -73,21 +89,28 @@ eventsRouter.get(
           stockAvailable: prize.stockAvailable,
           isActive: prize.isActive
         })),
-        participations: event.participations.map((participation) => ({
-          id: participation.id,
-          result: participation.result,
-          resultMessage: participation.resultMessage,
-          redeemed: participation.redeemed,
-          createdAt: participation.createdAt,
-          redeemedAt: participation.redeemedAt,
-          prize: participation.prize
-            ? {
-                id: participation.prize.id,
-                name: participation.prize.name
-              }
-            : null,
-          participant: participantService.decryptParticipant(participation.participant)
-        }))
+        participations: event.participations.map((participation) => {
+          const participant = readParticipantForAdmin({
+            id: participation.id,
+            participant: participation.participant
+          });
+
+          return {
+            id: participation.id,
+            result: participation.result,
+            resultMessage: participation.resultMessage,
+            redeemed: participation.redeemed,
+            createdAt: participation.createdAt,
+            redeemedAt: participation.redeemedAt,
+            prize: participation.prize
+              ? {
+                  id: participation.prize.id,
+                  name: participation.prize.name
+                }
+              : null,
+            participant
+          };
+        })
       });
     } catch (error) {
       next(error);

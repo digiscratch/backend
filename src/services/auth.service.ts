@@ -107,7 +107,7 @@ export class AuthService {
       throw new HttpError(400, "MFA_SETUP_REQUIRED", "MFA setup must be completed first.");
     }
 
-    const secret = mfaServiceSecret(
+    const secret = this.readMfaSecret(
       mfaSettings.secretCiphertext,
       mfaSettings.secretIv,
       mfaSettings.secretAuthTag
@@ -157,7 +157,7 @@ export class AuthService {
       throw new HttpError(403, "MFA_REQUIRED", "MFA must be configured first.");
     }
 
-    const secret = mfaServiceSecret(
+    const secret = this.readMfaSecret(
       user.mfaSettings.secretCiphertext,
       user.mfaSettings.secretIv,
       user.mfaSettings.secretAuthTag
@@ -282,10 +282,18 @@ export class AuthService {
       expiresInMinutes: 15
     };
   }
-}
 
-function mfaServiceSecret(ciphertext: string, iv: string, authTag: string): string {
-  return encryptionService.decrypt({ ciphertext, iv, authTag });
+  private readMfaSecret(ciphertext: string, iv: string, authTag: string): string {
+    try {
+      return encryptionService.decrypt({ ciphertext, iv, authTag });
+    } catch {
+      throw new HttpError(
+        409,
+        "MFA_RESET_REQUIRED",
+        "La verificación de seguridad debe configurarse nuevamente."
+      );
+    }
+  }
 }
 
 export const authService = new AuthService();
