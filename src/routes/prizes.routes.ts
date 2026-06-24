@@ -1,6 +1,7 @@
 import { InternalUserRole } from "@prisma/client";
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
+import { HttpError } from "../lib/http-error";
 import { requireAuth, requireRoles } from "../middlewares/auth.middleware";
 import { validateBody } from "../middlewares/validate.middleware";
 import { prizeInventorySchema, prizePatchSchema, prizeSchema } from "../schemas/prize.schemas";
@@ -74,6 +75,46 @@ prizesRouter.patch("/:id", validateBody(prizePatchSchema), async (request, respo
     });
 
     response.json(prize);
+  } catch (error) {
+    next(error);
+  }
+});
+
+prizesRouter.delete("/:id", async (request, response, next) => {
+  try {
+    const prize = await prisma.prize.findUniqueOrThrow({
+      where: { id: request.params.id as string },
+      include: { _count: { select: { participations: true } } }
+    });
+
+    if (prize.isActive) {
+      throw new HttpError(409, "PRIZE_ACTIVE", "El premio debe estar inactivo antes de eliminarlo.");
+    }
+
+    if (prize._count.participations > 0) {
+      throw new HttpError(
+        409,
+        "PRIZE_HAS_PARTICIPATIONS",
+        "No se puede eliminar un premio que ya tiene participaciones asignadas."
+      );
+    }
+
+    await prisma.prize.delete({
+      where: { id: prize.id }
+    });
+
+    await auditService.log({
+      actorUserId: request.auth?.userId,
+      actorEmail: request.auth?.email,
+      actorRole: request.auth?.role,
+      action: "PRIZE_DELETED",
+      entityType: "prize",
+      entityId: prize.id,
+      previousValue: prize,
+      request
+    });
+
+    response.status(204).send();
   } catch (error) {
     next(error);
   }
