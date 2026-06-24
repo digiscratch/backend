@@ -3,7 +3,7 @@ import { logger } from "./lib/logger";
 import { prisma } from "./lib/prisma";
 import { authService } from "./services/auth.service";
 
-const demoEvent = {
+const initialEvent = {
   code: "DGTL7K9M2Q",
   name: "Digitel Fan Zone Caracas",
   description: "CCCT, Nivel C2",
@@ -36,25 +36,25 @@ const demoEvent = {
 
 async function run() {
   const event = await prisma.event.upsert({
-    where: { code: demoEvent.code },
+    where: { code: initialEvent.code },
     update: {
-      name: demoEvent.name,
-      description: demoEvent.description,
-      startsAt: demoEvent.startsAt,
-      endsAt: demoEvent.endsAt,
-      isActive: demoEvent.isActive
+      name: initialEvent.name,
+      description: initialEvent.description,
+      startsAt: initialEvent.startsAt,
+      endsAt: initialEvent.endsAt,
+      isActive: initialEvent.isActive
     },
     create: {
-      code: demoEvent.code,
-      name: demoEvent.name,
-      description: demoEvent.description,
-      startsAt: demoEvent.startsAt,
-      endsAt: demoEvent.endsAt,
-      isActive: demoEvent.isActive
+      code: initialEvent.code,
+      name: initialEvent.name,
+      description: initialEvent.description,
+      startsAt: initialEvent.startsAt,
+      endsAt: initialEvent.endsAt,
+      isActive: initialEvent.isActive
     }
   });
 
-  for (const prize of demoEvent.prizes) {
+  for (const prize of initialEvent.prizes) {
     const existingPrize = await prisma.prize.findFirst({
       where: {
         eventId: event.id,
@@ -87,7 +87,7 @@ async function run() {
     });
   }
 
-  logger.info({ eventId: event.id, code: event.code }, "Seeded demo event");
+  logger.info({ eventId: event.id, code: event.code }, "Seeded initial event");
 
   if (env.SEED_ADMIN_EMAIL && env.SEED_ADMIN_NAME && env.SEED_ADMIN_PASSWORD) {
     const user = await authService.seedSuperAdmin(
