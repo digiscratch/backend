@@ -25,7 +25,7 @@ const envSchema = z.object({
   LOG_WEBHOOK_URL: optionalUrl,
   REDIS_URL: optionalUrl,
   APP_VERSION: z.string().default("1.0.0"),
-  ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(15),
+  ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(480),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
   LOGIN_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().default(900),
   LOGIN_RATE_LIMIT_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),

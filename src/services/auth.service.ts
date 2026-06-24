@@ -8,6 +8,7 @@ import { tokenService } from "./token.service";
 import { mfaService } from "./mfa.service";
 import { auditService } from "./audit.service";
 import { encryptionService } from "./encryption.service";
+import { env } from "../config/env";
 
 export class AuthService {
   async login(email: string, password: string, request: Request) {
@@ -253,7 +254,7 @@ export class AuthService {
     }
 
     const refreshToken = tokenService.createRefreshToken();
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * env.REFRESH_TOKEN_TTL_DAYS);
     const persisted = await prisma.refreshToken.create({
       data: {
         userId,
@@ -279,7 +280,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken: refreshTokenJwt,
-      expiresInMinutes: 15
+      expiresInMinutes: env.ACCESS_TOKEN_TTL_MINUTES
     };
   }
 
